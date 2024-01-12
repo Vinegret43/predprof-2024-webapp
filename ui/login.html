@@ -11,25 +11,31 @@
              <div class="horizontal-layout">
                  <div class="vertical-layout">
                      <h1>Логин</h1>
-                     <form>
+                     <form action="/login">
                          <div class="vertical-layout">
-                             <label for="username">Имя пользователя:</label><br/>
-                             <input type="text" id="username" name="username"></input><br/>
-                             <label for="username">Пароль:</label><br/>
+                             <label for="username">Имя пользователя:</label>
+                             <input type="text" id="username" name="username"></input>
+                             <label for="username">Пароль:</label>
                              <input type="password" id="password" name="password"></input>
+                             <input type="submit" value="Логин">
                          </div>
                      </form>
                  </div>
                  <div class="vertical-layout">
                      <h1>Регистрация</h1>
-                     <form>
+                     <form action="/regiter">
                          <div class="vertical-layout">
-                             <label for="username">Имя пользователя:</label><br/>
-                             <input type="text" id="username" name="username"></input><br/>
-                             <label for="username">Пароль:</label><br/>
+                             <label for="username">Имя пользователя:</label>
+                             <input type="text" id="username" name="username"></input>
+                             <label for="username">Пароль:</label>
                              <input type="password" id="password" name="password"></input>
-                             <label for="username">Подтверждение пароля:</label><br/>
+                             <label for="username">Подтверждение пароля:</label>
                              <input type="password" id="password" name="password"></input>
+                             <div>
+                                 <label for"is_admin">Создать аккаунт админа</label>
+                                 <input type="checkbox" id="is_admin" name="is_admin"></input>
+                             </div>
+                             <input type="submit" value="Регистрация">
                          </div>
                      </form>
                  </div>

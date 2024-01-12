@@ -1,0 +1,47 @@
+@font-face {
+    font-family: "Cantarell";
+    src: url("/static/fonts/Cantarell-VF.otf");
+    font-weight: 1;
+}
+
+* {
+    color: white;
+}
+
+body {
+    background: url("/static/images/bg.jpg") no-repeat fixed;
+    background-size: cover;
+    font-family: "Cantarell";
+    font-size: 32px;
+}
+
+h1 {
+    font-size: 64px;
+}
+
+.main {
+    padding: 50px;
+    background-color: #000D;
+    margin: 200px;
+    border-radius: 100px;
+}
+
+.horizontal-layout {
+    display: flex;
+    justify-content: space-around;
+}
+
+.vertical-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+input {
+    background: black;
+    border-color: white;
+    border-width: 1px;
+    border-radius: 20px;
+    font-size: 24px;
+    padding: 5px;
+}

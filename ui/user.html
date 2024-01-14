@@ -8,15 +8,23 @@
         <link rel="stylesheet" href="/static/css/user.css">
     </head>
     <body>
-         <!--
-          Необходимо будет сделать:
-          1. Titlebar с кнопкой выхода из акка (Ссылка на /logout) и ссылкой, ведущей на prizes.html
-          2. Центральная часть страницы со списком доступных для игрока игровых полей.
-          Идти будут друг за другом вертикально, каждое поле содержит следующие компоненты:
-              1. Сама сетка. В клетках должны отображаться выигранные призы и промахи
-              2. Количество оставшихся выстрелов на данном поле
-              3. Название поля
-          -->
+         <div hidden>
+             <div class="board">
+                 <h2 class="board_title">Board Name</h2>
+                 <table>
+                 </table>
+                 <p class="board_shots">Количество выстрелов: N</p>
+             </div>
+         </div>
+
+         <div class="titlebar">
+             <a href="/prizes" class="prizes_link">Выигранные призы</a>
+             <a href="/lougout" class="lougout_link">Выход</a>
+         </div>
+
+         <div class="main">
+             <h1>Title</h1>
+         </div>
          <script src="/static/js/user.js"></script>
     </body>
 </html> 

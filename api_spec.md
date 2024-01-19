@@ -60,6 +60,7 @@ POST /createBoard
 size: int // Сколько клеток поле в ширину и высоту
 name: string // Название поля (В тех.требованиях этого нет, но, как по мне, лучше сделать)
 Названия могут повторяться, поэтому каждому полю ещё нужен будет свой уникальный ID
+Возвращает ID созданного поля
 ```
 
 ### Удаление игрового поля   
@@ -95,9 +96,8 @@ POST /createPrize
 name: string
 image: image data
 description: string
-x: int
-y: int
-idField: int
+
+Возвращает ID созданного приза
 ```
 
 ### Редактировать приз   
@@ -110,9 +110,6 @@ id: int
 name: string
 image: image data
 description: string
-x: int
-y: int
-idField: int
 ```
 
 ### Удалить приз   

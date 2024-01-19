@@ -81,9 +81,6 @@ GET /prizes
 "image": string, // Путь к изображению с иконкой этого приза
 "description": string, // Описание приза
 "id": int, // ID приза
-"x": int, // х коррдината приза
-"y": int, // у координата приза
-"idField": int, // id поля на котором будет приз
 "isWon": bool // Был ли этот приз выигран кем-либо
 }
 ```
@@ -146,7 +143,7 @@ GET /users
 Возвращает JSON список с обьектами следующего формата:
 {
 "username": string // Имя пользователя
-"user_id": int // ID пользователя
+"username": string // ID пользователя
 }
 ```
 
@@ -155,14 +152,14 @@ GET /users
 ```
 POST /addPlayer
 board_id: int
-user_id: int
+username: str
 ```
 
 ### Изменить количество выстрелов у игрока на определенном поле   
 
 ```
 POST /setNumberOfShots
-user_id: int
+username: str
 board_id: int
 shots: int
 ```

@@ -120,21 +120,21 @@ def clear_prize():
 
 @app.get('/api/users') 
 def users():
-    users = [] # TODO: Запрос из БД списка словарей формата {'username': str, 'user_id': int}
+    users = [] # TODO: Запрос из БД списка словарей формата {'username': str, 'username': str}
     return jsonify(users)
 
 @app.post('/api/addPlayer')
 def add_player():
     board_id = int(request.form("board_id"))
-    user_id = int(request.form("user_id"))
+    username = str(request.form("username"))
     # TODO: Дать игроку доступ к полю в БД
 
 @app.post('/api/setNumberOfShots')
 def set_number_of_shots():
-    user_id = int(request.form["user_id"])
+    username = str(request.form["username"])
     board_id = int(request.form["board_id"])
     shots = int(request.form["shots"])
-    # TODO: Запись в БД в таблицу полей по (board_id) {user_id:shots} в user_shots_dict
+    # TODO: Запись в БД в таблицу полей по (board_id) {username:shots} в user_shots_dict
 
 @app.get('/api/board') 
 def board():

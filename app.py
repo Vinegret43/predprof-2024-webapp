@@ -13,7 +13,7 @@ def main(error_message=None):
             return render_template('user.html')
     return render_template('login.html', error_message=error_message)
 
-@app.route('/api/login', methods=['POST'])
+@app.post('/api/login')
 def login():
     username = request.form["username"]
     password = request.form["password"]
@@ -66,8 +66,8 @@ def create_board():
     return str(board_id)
 
 @app.post('/api/deleteBoard')
-def delete_board(id):
-    board_id = int(request.form("board_id"))
+def delete_board():
+    id = int(request.form("id"))
     # TODO: Запрос в БД удаление поля по id
 
 @app.get('/api/prizes')
@@ -104,7 +104,7 @@ def delete_prize():
     # TODO: Запрос в БД на удаление приза по id
 
 @app.post('/api/putPrize')
-def put_prize(board_id, prize_id, x, y):
+def put_prize():
     board_id = int(request.form("board_id"))
     prize_id = int(request.form("prize_id"))
     x = int(request.form("x"))
@@ -112,7 +112,7 @@ def put_prize(board_id, prize_id, x, y):
     # TODO: Добавить приз в клетку поля
 
 @app.post('/api/clearPrize')
-def clear_prize(board_id, prize_id, x, y):
+def clear_prize():
     board_id = int(request.form("board_id"))
     x = int(request.form("x"))
     y = int(request.form("y"))
@@ -124,21 +124,21 @@ def users():
     return jsonify(users)
 
 @app.post('/api/addPlayer')
-def add_player(board_id, user_id):
+def add_player():
     board_id = int(request.form("board_id"))
     user_id = int(request.form("user_id"))
     # TODO: Дать игроку доступ к полю в БД
 
 @app.post('/api/setNumberOfShots')
-def set_number_of_shots(user_id, board_id, shots):
+def set_number_of_shots():
     user_id = int(request.form["user_id"])
     board_id = int(request.form["board_id"])
     shots = int(request.form["shots"])
     # TODO: Запись в БД в таблицу полей по (board_id) {user_id:shots} в user_shots_dict
 
 @app.get('/api/board') 
-def board(board_id):
-    id = int(request.form["id"])
+def board():
+    id = int(request.args["id"])
     board_content = [] # TODO: Возвратить информацию о каждой клетке поля в формате списка.
     # Значения идут построчно: сначала значения первой строки слева направо, затем второй и
     # и так далее. Информация о каждой клетке закодирована в формате строки. Возможны
@@ -151,7 +151,7 @@ def board(board_id):
     return jsonify(board_content)
 
 @app.post('/api/shoot') 
-def shoot(board_id, x, y):
+def shoot():
     board_id = int(request.form["board_id"])
     x = int(request.form["x"])
     y = int(request.form["y"])

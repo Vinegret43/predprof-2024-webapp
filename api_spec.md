@@ -95,6 +95,9 @@ POST /createPrize
 name: string
 image: image data
 description: string
+x: int
+y: int
+idField: int
 ```
 
 ### Редактировать приз   
@@ -107,6 +110,9 @@ id: int
 name: string
 image: image data
 description: string
+x: int
+y: int
+idField: int
 ```
 
 ### Удалить приз   

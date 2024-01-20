@@ -1,57 +1,78 @@
 from flask import Flask, jsonify, redirect, url_for, session, render_template, request
+from sqlite3 import connect, cursor
+
 
 app = Flask(__name__)
 app.secret_key = "S2;lJ^}S8F3[..xf{a}Ju%9%DpSK#iaAXRW;c(J{Neb!lTy^oZoB1tyz!.yF,HD"
 
+connection = connect('Users2.sqlite')
+cursor = connection.cursor()
+
 @app.get('/')
 def main(error_message=None):
     if 'username' in session:
-        is_admin = 0 # TODO: Запросить из БД
-        if is_admin:
+        username = session["username"] 
+        cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
+        is_admin = cursor.fetchone()[0]
+        if is_admin == 'true':
             return render_template('admin.html')
         else:
             return render_template('user.html')
     return render_template('login.html', error_message=error_message)
 
+
 @app.post('/api/login')
 def login():
     username = request.form["username"]
     password = request.form["password"]
-    valid_user = False # TODO: Подтвердить пароль пользователя в БД
-    if valid_user:
+
+    cursor.execute(f"SELECT password FROM allUsers WHERE login = ?", (username,))
+    data = cursor.fetchone()
+    if data is None:
+        return main("Неверное имя пользователя")
+    elif data[0] == password:
         session['username'] = username
         return redirect(url_for('main'))
     else:
-        return main("Неверное имя пользователя или пароль")
+        return main("Неверный пароль")
+
 
 @app.post('/api/register')
 def register():
+    cursor.execute("SELECT max(rowid) FROM allUsers")
+    id = cursor.fetchall()[0][0]
     username = request.form["username"]
     password = request.form["password"]
-    is_admin = bool(request.form["is_admin"])
+    is_admin = str(bool(request.form["is_admin"]))
     
     if not username.strip() or not password.strip():
         return main("Недопустимое имя пользователя или пароль")
 
-    user_exists = False # TODO: попробовать записать пользователя в БД. Если пользователь
-    # уже существует, записать в эту переменную True
-
-    if user_exists:
+    cursor.execute("SELECT count(*) FROM allUsers WHERE login = ?", (username,))
+    data = cursor.fetchone()
+    if data == 1:
         return main("Имя пользователя занято")
     else:
+        sqlite_insert_query = f"""INSERT INTO allUsers (id, login, password, admin)  VALUES  ({id}, '{username}', '{password}', '{is_admin}')"""
+        cursor.execute(sqlite_insert_query)
+        connection.commit()
+
         session["username"] = username
         return redirect(url_for("main"))
+
 
 @app.get('/api/logout') 
 def logout(): 
     session.clear()
     return redirect(url_for('main'))
 
+
 @app.get('/api/boards')
 def boards():
     username = session["username"]
-    is_admin = False # TODO: Запросить у бд, является ли пользователь админом
-    if is_admin:
+    cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
+    is_admin = cursor.fetchone()[0]
+    if is_admin == 'true':
         boards = [] # TODO: Запросить все существующие таблицы
     else:
         boards = [] # TODO: Запросить все таблицы, доступные данному юзеру
@@ -72,8 +93,10 @@ def delete_board():
 
 @app.get('/api/prizes')
 def prizes():
-    is_admin = False # TODO: Запросить у БД, является ли пользователь админом 
-    if is_admin:
+    username = session["username"] 
+    cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
+    is_admin = cursor.fetchone()[0]
+    if is_admin == 'true':
         prizes = [] # TODO: Запрос из БД списка словарей формата {'name': str, 'image': str, 'description': str, 'id': int, 'isWon': bool}
         return jsonify(prizes)
     else:

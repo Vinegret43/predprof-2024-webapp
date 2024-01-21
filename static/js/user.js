@@ -1,12 +1,4 @@
-// Крч надо:
-// 1. Сделать, чтобы скрипт запрашивал данные об игровых полях с сервера, парсил
-// их и затем уже генерировал HTML для игровых полей на основе полученных данных.
-// Можно это делать с помощью createBoard, если чё. Генерацию HTML я прописал уже
-// 2. Сделать, чтобы клетки в таблице отвечали на клики и посылали запрос на
-// сервер, говоря, что игрок хочет совершить выстрел. Я оставил TODO там,
-// где надо добавить коллбэк (Только для клеток, в которые ещё не стреляли,
-// само собой). Эта самая клетка потом ещё должна будет обновить себя
-// взависимости от полученного с сервака результата
+//закинуть вместо примера позже акт. ссылку
 
 function createBoard(title, shots, size, content) {
     // Taking a pre-made template and just modifying it
@@ -24,7 +16,26 @@ function createBoard(title, shots, size, content) {
             let entry = document.createElement("td");
             if (content[y * size + x] == "unknown") {
                entry.innerHTML = "[]";
-                // TODO: Attach a callback to `entry` to react to clicks
+               entry.addEventListener("click", function() {
+          fetch('https://example.com/api/shoot', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ boardId: title, cellIndex: y * size + x }),
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result === 'hit') {
+              entry.innerHTML = "H";
+            } else if (result === 'miss') {
+              entry.innerHTML = "M";
+            }
+          })
+          .catch(error => {
+            console.error('Ошибка при отправке запроса:', error);
+          });
+        });
             } else if (content[y * size + x] == "empty") {
                entry.innerHTML = "X";
             } else {
@@ -46,3 +57,44 @@ let content = [
 ];
 document.getElementsByClassName("main")[0].appendChild(createBoard("Board title", 12, 3, content));
 document.getElementsByClassName("main")[0].appendChild(createBoard("Board title 2", 3, 3, content));
+
+// Запрос данных об игровых полях с севера, закинуть ссылку вместо примера!!
+function fetchGameBoards() {
+  fetch('https://example.com/api/boards')
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(boardData => {
+        const { title, shots, size, content } = boardData;
+        const boardElement = createBoard(title, shots, size, content);
+        document.getElementsByClassName("main")[0].appendChild(boardElement);
+      });
+    })
+    .catch(error => {
+      console.error('Ошибка при получении данных:', error);
+    });
+}
+
+function handleCellClick(event) {
+  const cell = event.target;
+  const boardId = cell.closest('.board').id;
+  const cellIndex = Array.from(cell.parentNode.children).indexOf(cell);
+
+  fetch('https://example.com/api/shoot', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ boardId, cellIndex }),
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result === 'hit') {
+      cell.classList.add('hitCell');
+    } else if (result === 'miss') {
+      cell.classList.add('missCell');
+    }
+  })
+  .catch(error => {
+    console.error('Ошибка при отправке запроса:', error);
+  });
+}

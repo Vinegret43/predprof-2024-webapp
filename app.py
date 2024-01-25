@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, redirect, url_for, session, render_template, request
-from sqlite3 import connect, cursor
-
+from sqlite3 import connect
 
 app = Flask(__name__)
 app.secret_key = "S2;lJ^}S8F3[..xf{a}Ju%9%DpSK#iaAXRW;c(J{Neb!lTy^oZoB1tyz!.yF,HD"
@@ -8,10 +7,11 @@ app.secret_key = "S2;lJ^}S8F3[..xf{a}Ju%9%DpSK#iaAXRW;c(J{Neb!lTy^oZoB1tyz!.yF,H
 connection = connect('Users2.sqlite')
 cursor = connection.cursor()
 
+
 @app.get('/')
 def main(error_message=None):
     if 'username' in session:
-        username = session["username"] 
+        username = session["username"]
         cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
         is_admin = cursor.fetchone()[0]
         if is_admin == 'true':
@@ -44,7 +44,7 @@ def register():
     username = request.form["username"]
     password = request.form["password"]
     is_admin = str(bool(request.form["is_admin"]))
-    
+
     if not username.strip() or not password.strip():
         return main("Недопустимое имя пользователя или пароль")
 
@@ -61,8 +61,8 @@ def register():
         return redirect(url_for("main"))
 
 
-@app.get('/api/logout') 
-def logout(): 
+@app.get('/api/logout')
+def logout():
     session.clear()
     return redirect(url_for('main'))
 
@@ -73,58 +73,113 @@ def boards():
     cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
     is_admin = cursor.fetchone()[0]
     if is_admin == 'true':
-        boards = [] # TODO: Запросить все существующие таблицы
+        boards = list()
+        a = cursor.execute(f"SELECT * FROM fields").fetchall()
+        for i in a:
+            b = {
+                "name": i[3],
+                "size": i[1],
+                "id": i[0]
+            }
+            boards.append(b)
     else:
-        boards = [] # TODO: Запросить все таблицы, доступные данному юзеру
+        boards = list()
+        fieldIdByLogin = cursor.execute(f"SELECT field_id FROM allUsers WHERE login = ?", (username,)).fetchall()
+        q = fieldIdByLogin.split("|")
+        for i in q:
+            v = cursor.execute(f"SELECT * FROM fields WHERE id = ?", (int(i),)).fetchall()
+            for j in v:
+                b = {
+                    "name": j[3],
+                    "size": j[1],
+                    "id": j[0]
+                }
+                boards.append(b)
+
     return jsonify(boards)
+
 
 @app.post('/api/createBoard')
 def create_board():
     name = request.form["name"]
     size = int(request.form["size"])
     assert size > 2
-    board_id = 1337 # TODO: Создать новую таблицу в БД, вернуть её ID
+    newId = len(cursor.execute(f"SELECT * FROM fields").fetchall())
+    g = ""
+    for i in range(size):
+        g += "0|" * size
+        g += "/"
+    newBoard = f"""INSERT INTO fields (id, Size, dataField, name)  VALUES  ({newId}, '{size}', '{g[:-2]}', '{name}')"""
+    cursor.execute(newBoard)
+    connection.commit()
+    board_id = newId
     return str(board_id)
+
 
 @app.post('/api/deleteBoard')
 def delete_board():
     id = int(request.form("id"))
-    # TODO: Запрос в БД удаление поля по id
+    cursor.execute("DELETE from fields where id = ?", (id,))
+    connection.commit()
+
 
 @app.get('/api/prizes')
 def prizes():
-    username = session["username"] 
+    username = session["username"]
     cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
     is_admin = cursor.fetchone()[0]
     if is_admin == 'true':
-        prizes = [] # TODO: Запрос из БД списка словарей формата {'name': str, 'image': str, 'description': str, 'id': int, 'isWon': bool}
+        prizes = []
+        a = cursor.execute(f"SELECT * FROM gifts").fetchall()
+        for i in a:
+            b = {
+                "name": i[1],
+                "image": i[2],
+                "description": i[3],
+                "id": i[0],
+                "isWon": i[4]
+            }
+            prizes.append(b)
         return jsonify(prizes)
     else:
         return render_template("prizes.html")
 
+
 @app.post('/api/createPrize')
 def create_prize():
+    # TODO: принимать файл с иконкой
+    data = "/images/<WHATEVER>"
     name = request.form["name"]
     description = request.form["description"]
-    # TODO: принимать файл с иконкой
-    id = 1337 # TODO: создать приз в БД, вернуть ID
+    a = cursor.execute(f"SELECT * FROM gifts").fetchall()
+    id = len(a)
+    isWon = "False"
+    newGift = f"""INSERT INTO gifts (id, name, image, description, isWon)  VALUES  ({id}, '{name}', '{data}', '{description}, '{isWon}')"""
+    cursor.execute(newGift)
+    connection.commit()
     return str(id)
+
 
 @app.post('/api/editPrize')
 def edit_prize():
-    id = int(request.form["id"])
+    idN = int(request.form["id"])
     if "name" in request.form:
         new_name = request.form["name"]
-        # TODO: Обновить имя в БД
+        cursor.execute("""UPDATE allUsers SET name = ? WHERE id = ? """, (new_name, idN)).fetchall()
+        connection.commit()
     if "description" in request.form:
         new_description = request.form["description"]
-        # TODO: Обновить описание в БД
+        cursor.execute("""UPDATE allUsers SET description = ? WHERE id = ? """, (new_description, idN)).fetchall()
+        connection.commit()
     # TODO: обновление иконки
+
 
 @app.post('/api/deletePrize')
 def delete_prize():
     id = int(request.form["id"])
-    # TODO: Запрос в БД на удаление приза по id
+    cursor.execute("DELETE from gifts where id = ?", (id,))
+    connection.commit()
+
 
 @app.post('/api/putPrize')
 def put_prize():
@@ -134,6 +189,7 @@ def put_prize():
     y = int(request.form("y"))
     # TODO: Добавить приз в клетку поля
 
+
 @app.post('/api/clearPrize')
 def clear_prize():
     board_id = int(request.form("board_id"))
@@ -141,16 +197,27 @@ def clear_prize():
     y = int(request.form("y"))
     # TODO: Удалить приз из клетки поля
 
-@app.get('/api/users') 
+
+@app.get('/api/users')
 def users():
-    users = [] # TODO: Запрос из БД списка словарей формата {'username': str, 'username': str}
+    users = []
+    a = cursor.execute(f"SELECT * FROM allUsers").fetchall()
+    for i in a:
+        if i[3] == "False":
+            b = {
+                "username": i[1],
+                "id": i[0]
+            }
+            users.append(b)
     return jsonify(users)
+
 
 @app.post('/api/addPlayer')
 def add_player():
     board_id = int(request.form("board_id"))
     username = str(request.form("username"))
     # TODO: Дать игроку доступ к полю в БД
+
 
 @app.post('/api/setNumberOfShots')
 def set_number_of_shots():
@@ -159,10 +226,11 @@ def set_number_of_shots():
     shots = int(request.form["shots"])
     # TODO: Запись в БД в таблицу полей по (board_id) {username:shots} в user_shots_dict
 
-@app.get('/api/board') 
+
+@app.get('/api/board')
 def board():
     id = int(request.args["id"])
-    board_content = [] # TODO: Возвратить информацию о каждой клетке поля в формате списка.
+    board_content = []  # TODO: Возвратить информацию о каждой клетке поля в формате списка.
     # Значения идут построчно: сначала значения первой строки слева направо, затем второй и
     # и так далее. Информация о каждой клетке закодирована в формате строки. Возможны
     # следующие значения:
@@ -173,15 +241,17 @@ def board():
 
     return jsonify(board_content)
 
-@app.post('/api/shoot') 
+
+@app.post('/api/shoot')
 def shoot():
     board_id = int(request.form["board_id"])
     x = int(request.form["x"])
     y = int(request.form["y"])
-    field_info = None # TODO: Запросить из БД информацию о данной клетке.
+    field_info = None  # TODO: Запросить из БД информацию о данной клетке.
     # Возвращает либо None, либо словарь с информацией о выигранном призе следующего
     # формата: {"name": str, "image": str, "description": str}
     return jsonify(field_info)
+
 
 if __name__ == '__main__':
     app.run()

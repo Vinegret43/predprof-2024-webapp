@@ -1,0 +1,80 @@
+.popup {
+    width: 70vw;
+    height: 90vh;
+    background-color: #000;
+    border: 1px grey solid;
+    border-radius: 30px;
+}
+
+.popup_container {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup_header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 30px;
+    padding-right: 30px;
+    border: 1px grey solid;
+    border-radius: 30px;
+}
+
+.popup_header button {
+    background: transparent;
+    border: none;
+}
+
+.popup_header button .icon {
+    height: 48px;
+    width: 48px;
+}
+
+.popup_body {
+    padding: 30px;
+}
+
+.icon {
+    height: 16px;
+    width: 16px;
+}
+
+.boards_list_entry, .prizes_list_entry {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+}
+
+.board_heading, .prize_heading {
+    display: flex;
+    flex-direction: row;
+}
+
+.board_id, .prize_id {
+    color: grey;
+}
+
+.prize_icon {
+    max-width: 64px;
+    max-height: 64px;
+}
+
+button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    background-color: black;
+    border-color: white;
+    border-radius: 8px;
+    height: 24px;
+    padding: 12px;
+}

@@ -23,9 +23,18 @@ input {
     background: black;
     border-color: white;
     border-width: 1px;
-    border-radius: 20px;
-    font-size: 24px;
-    padding: 5px;
+    border-radius: 10px;
+    font-size: 22px;
+    padding: 3px;
+}
+
+textarea {
+    background: black;
+    border-color: white;
+    border-width: 1px;
+    border-radius: 10px;
+    font-size: 22px;
+    padding: 3px;
 }
 
 table, th, td {
@@ -36,7 +45,9 @@ table, th, td {
     padding: 50px;
     background-color: #000D;
     margin: 200px;
-    border-radius: 100px;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    border-radius: 30px;
 }
 
 .horizontal-layout {
@@ -48,4 +59,9 @@ table, th, td {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+.logo {
+    width: 40vw;
+    margin-left: 30vw;
 }

@@ -1,3 +1,5 @@
+const HOST = "http://" + window.location.host;
+
 function createBoard(title, shots, size, content) {
     // Taking a pre-made template and just modifying it
     let element = document.getElementsByClassName("board")[0].cloneNode(true);
@@ -15,7 +17,7 @@ function createBoard(title, shots, size, content) {
             if (content[y * size + x] == "unknown") {
                entry.innerHTML = "[]";
                entry.addEventListener("click", function() {
-          fetch('https://example.com/api/shoot', {
+          fetch(HOST + '/api/shoot', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -48,18 +50,9 @@ function createBoard(title, shots, size, content) {
     return element;
 }
 
-// This code is just for reference: delete it
-let content = [
-    "unknown", "unknown", "empty",
-    "empty", "unknown", "unknown",
-    "prize.png", "unknown", "unknown",
-];
-document.getElementsByClassName("main")[0].appendChild(createBoard("Board title", 12, 3, content));
-document.getElementsByClassName("main")[0].appendChild(createBoard("Board title 2", 3, 3, content));
-
 // Функция для запроса данных об игровых полях с сервера
 function fetchGameBoards() {
-  fetch('https://example.com/api/boards')
+  fetch(HOST + '/api/boards')
     .then(response => response.json())
     .then(data => {
       data.forEach(boardData => {
@@ -80,7 +73,7 @@ function handleCellClick(event) {
   const cellIndex = Array.from(cell.parentNode.children).indexOf(cell);
 
   // Отправка запроса на сервер
-  fetch('https://example.com/api/shoot', {
+  fetch(HOST + '/api/shoot', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

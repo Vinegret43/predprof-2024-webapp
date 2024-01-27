@@ -5,20 +5,120 @@
         <title>Page Title</title>
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <link rel="stylesheet" href="/static/css/general.css">
+        <link rel="stylesheet" href="/static/css/admin.css">
+        <link rel="icon" type="image/png" href="/static/images/favicon.png">
     </head>
     <body>
          <!-- 
          Надо будет сделать:
-         1. Тайтлбар с логотипом и кнопкой выхода
-         2. Список полей игровых, чтобы можно было добавлять новые и удалять
-         3. Редактор полей игровых. Каждое поле можно открыть и там призы
-         добавлять и игроков на поле
-         4. Список призов и форма для добавления новых
-         5. Редактор призов
-         6. Вроде ещё чё-то???
+         1. [X] Тайтлбар с логотипом и кнопкой выхода
+         2. [X] Список полей игровых, чтобы можно было добавлять новые и удалять
+         3. [ ] Фильтрация полей по названию
+         4. [ ] Редактор полей игровых. Каждое поле можно открыть и там призы
+         добавлять или игроков на поле, а ещё давать игрокам выстрелы
+         5. [X] Список призов и форма для добавления новых
+         6. [ ] Фильтрация призов по имени и тому, был ли он выигран или нет
+         7. [ ] Редактор призов
          -->
-         <div class="main">
+         <div hidden>
+             <div class="boards_list_entry">
+                 <div class="board_heading">
+                     <h4 class="board_title">Board Name</h4>
+                     <h4 class="board_id">Board ID</h4>
+                 </div>
+                 <button onclick="editBoard(this);">
+                     <image class="icon" src="/static/images/edit.png"/>
+                     Редактировать
+                 </button>
+                 <button onclick="deleteBoard(this);">
+                     <image class="icon" src="/static/images/trash.png"/>
+                     Удалить
+                 </button>
+             </div>
 
+             <div class="prizes_list_entry">
+                 <image class="prize_icon" src="" alt="Icon">
+                 <div class="prize_heading">
+                     <h4 class="prize_name"></h4>
+                     <h4 class="prize_id"></h4>
+                 </div>
+                 <button onclick="editPrize(this);">
+                     <image class="icon" src="/static/images/edit.png"/>
+                     Редактировать
+                 </button>
+                 <button onclick="deletePrize(this);">
+                     <image class="icon" src="/static/images/trash.png"/>
+                     Удалить
+                 </button>
+             </div>
+
+             <div class="board_editor">
+
+             </div>
+
+             <div class="prize_editor">
+                 <form action="/api/createPrize" method="POST" onsubmit="return submitPrizeEdit(this);" enctype="multipart/form-data">
+                     <input type="hidden" name="id">
+                     <label for="name">Название приза:</label>
+                     <input type="text" id="name" name="name" required></input><br/>
+                     <label for="description">Описание приза:</label><br/>
+                     <textarea cols="40" rows="5" id="description" name="description" required></textarea><br/>
+                     <label for="icon">Новая иконка приза:</label>
+                     <input type="file" id="icon" name="icon" accept="image/*"></input><br/>
+                     <input type="submit" value="Сохранить">
+                 </form>
+             </div>
          </div>
+
+         <div class="popup_container_hidden" hidden>
+             <div class="popup_container">
+                 <div class="popup">
+                     <div class="popup_header">
+                         <h3 class="popup_title">Title</h3>
+                         <button onclick="this.parentElement.parentElement.parentElement.parentElement.hidden = true;">
+                             <image class="icon" src="/static/images/close.png"/>
+                         </button>
+                     </div>
+                     <div class="popup_body">
+                         <!-- Contents are set in JS -->
+                     </div>
+                 </div>
+             </div>
+         </div>
+
+         <div class="titlebar">
+             <a href="/api/logout" class="lougout_link">Выход</a>
+         </div>
+
+
+         <div class="main">
+             <h1>Игровые поля</h1>
+             <div class="boards_list">
+                 <!-- Contents are generated in JS -->
+             </div>
+             <h3>Создать игровое поле</h3>
+             <form action="/api/createBoard" method="POST" onsubmit="return createBoard(this);">
+                 <label for="name">Название поля:</label>
+                 <input type="text" id="name" name="name" required></input><br/>
+                 <label for="size">Размерность поля:</label>
+                 <input type="number" id="size" name="size" min="2" max="30" required></input><br/>
+                 <input type="submit" value="Создать">
+             </form>
+             <h1>Призы</h1>
+             <div class="prizes_list">
+                 <!-- Contents are generated in JS -->
+             </div>
+             <h3>Создать новый приз</h3>
+             <form action="/api/createPrize" method="POST" onsubmit="return createPrize(this);" enctype="multipart/form-data">
+                 <label for="name">Название приза:</label>
+                 <input type="text" id="name" name="name" required></input><br/>
+                 <label for="description">Описание приза:</label><br/>
+                 <textarea cols="40" rows="5" id="description" name="description" required></textarea><br/>
+                 <label for="icon">Иконка приза:</label>
+                 <input type="file" id="icon" name="icon" accept="image/*" required></input><br/>
+                 <input type="submit" value="Создать">
+             </form>
+         </div>
+         <script src="/static/js/admin.js"></script>
     </body>
 </html> 

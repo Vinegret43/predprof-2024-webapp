@@ -5,35 +5,38 @@
         <title>Page Title</title>
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <link rel="stylesheet" href="/static/css/general.css">
+        <link rel="icon" type="image/png" href="/static/images/favicon.png">
     </head>
     <body>
+         <image class="logo" src="/static/images/logo.png"/>
          <div class="main">
+             {% if error_message %}
+                 {{ error_message }}
+             {% endif %}
              <div class="horizontal-layout">
                  <div class="vertical-layout">
                      <h1>Логин</h1>
                      <form action="/api/login" method="POST">
                          <div class="vertical-layout">
                              <label for="username">Имя пользователя:</label>
-                             <input type="text" id="username" name="username"></input>
+                             <input type="text" id="username" name="username" required></input>
                              <label for="username">Пароль:</label>
-                             <input type="password" id="password" name="password"></input>
+                             <input type="password" id="password" name="password" required></input>
                              <input type="submit" value="Логин">
                          </div>
                      </form>
                  </div>
                  <div class="vertical-layout">
                      <h1>Регистрация</h1>
-                     <form action="/api/regiter" method="POST">
+                     <form action="/api/register" method="POST">
                          <div class="vertical-layout">
                              <label for="username">Имя пользователя:</label>
-                             <input type="text" id="username" name="username"></input>
+                             <input type="text" id="username" name="username" required></input>
                              <label for="password">Пароль:</label>
-                             <input type="password" id="password" name="password"></input>
-                             <label for="password_confirm">Подтверждение пароля:</label>
-                             <input type="password" id="password_confirm" name="password_confirm"></input>
+                             <input type="password" id="password" name="password" required></input>
                              <div>
-                                 <label for"admin">Создать аккаунт админа</label>
-                                 <input type="checkbox" id="admin" name="admin"></input>
+                                 <label for="is_admin">Создать аккаунт админа</label>
+                                 <input type="checkbox" id="is_admin" name="is_admin"></input>
                              </div>
                              <input type="submit" value="Регистрация">
                          </div>

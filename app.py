@@ -1,60 +1,96 @@
-from flask import Flask, jsonify, redirect, url_for, session, render_template, request
+#!/usr/bin/python3
+
+from flask import Flask, jsonify, redirect, url_for, session, render_template, request, send_from_directory
 from sqlite3 import connect
+import json
+from uuid import uuid4
+import os
+
+def red(s):
+    print(f"\033[31m{s}\033[0m")
 
 app = Flask(__name__)
+app.config["UPLOAD_FOLDER"] = "images"
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.secret_key = "S2;lJ^}S8F3[..xf{a}Ju%9%DpSK#iaAXRW;c(J{Neb!lTy^oZoB1tyz!.yF,HD"
 
-connection = connect('Users2.sqlite')
-cursor = connection.cursor()
+connection = connect('Users2.sqlite', check_same_thread=False)
 
 
 @app.get('/')
 def main(error_message=None):
     if 'username' in session:
         username = session["username"]
-        cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
-        is_admin = cursor.fetchone()[0]
-        if is_admin == 'true':
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT admin FROM allUsers WHERE login = ?", (username,))
+            is_admin = cursor.fetchone()[0]
+        if is_admin == "True":
             return render_template('admin.html')
         else:
             return render_template('user.html')
     return render_template('login.html', error_message=error_message)
 
+@app.get("/prizes")
+def prizes_view():
+    username = session["username"]
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT prizes from allUsers WHERE login = ?", (username,))
+        prizes = cursor.fetchone()[0]
+    red(prizes)
+    return render_template("prizes.html")
 
 @app.post('/api/login')
 def login():
     username = request.form["username"]
     password = request.form["password"]
 
-    cursor.execute(f"SELECT password FROM allUsers WHERE login = ?", (username,))
-    data = cursor.fetchone()
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT password FROM allUsers WHERE login = ?", (username,))
+        data = cursor.fetchone()
     if data is None:
-        return main("Неверное имя пользователя")
+        return main("Неверное имя пользователя или пароль")
     elif data[0] == password:
         session['username'] = username
         return redirect(url_for('main'))
     else:
-        return main("Неверный пароль")
+        return main("Неверное имя пользователя или пароль")
 
 
 @app.post('/api/register')
 def register():
-    cursor.execute("SELECT max(rowid) FROM allUsers")
-    id = cursor.fetchall()[0][0]
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT max(rowid) FROM allUsers")
+        id = cursor.fetchall()[0][0]
+    if id is None:
+        id = 0
     username = request.form["username"]
     password = request.form["password"]
-    is_admin = str(bool(request.form["is_admin"]))
+    if request.form.get("is_admin"):
+        is_admin = str(bool(request.form["is_admin"]))
+    else:
+        is_admin = False
 
     if not username.strip() or not password.strip():
         return main("Недопустимое имя пользователя или пароль")
 
-    cursor.execute("SELECT count(*) FROM allUsers WHERE login = ?", (username,))
-    data = cursor.fetchone()
-    if data == 1:
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT count(*) FROM allUsers WHERE login = ?", (username,))
+        data = cursor.fetchone()
+    if data[0] != 0:
         return main("Имя пользователя занято")
     else:
-        sqlite_insert_query = f"""INSERT INTO allUsers (id, login, password, admin)  VALUES  ({id}, '{username}', '{password}', '{is_admin}')"""
-        cursor.execute(sqlite_insert_query)
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                """INSERT INTO allUsers (id, login, password, admin) 
+                VALUES  (?, ?, ?, ?)""",
+                (id, username, password, is_admin),
+            )
         connection.commit()
 
         session["username"] = username
@@ -70,11 +106,15 @@ def logout():
 @app.get('/api/boards')
 def boards():
     username = session["username"]
-    cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT admin FROM allUsers WHERE login = ?", (username,))
     is_admin = cursor.fetchone()[0]
-    if is_admin == 'true':
-        boards = list()
-        a = cursor.execute(f"SELECT * FROM fields").fetchall()
+    boards = list()
+    if is_admin == 'True':
+        with connection:
+            cursor = connection.cursor()
+            a = cursor.execute("SELECT * FROM fields").fetchall()
         for i in a:
             b = {
                 "name": i[3],
@@ -83,18 +123,24 @@ def boards():
             }
             boards.append(b)
     else:
-        boards = list()
-        fieldIdByLogin = cursor.execute(f"SELECT field_id FROM allUsers WHERE login = ?", (username,)).fetchall()
-        q = fieldIdByLogin.split("|")
-        for i in q:
-            v = cursor.execute(f"SELECT * FROM fields WHERE id = ?", (int(i),)).fetchall()
-            for j in v:
-                b = {
-                    "name": j[3],
-                    "size": j[1],
-                    "id": j[0]
-                }
-                boards.append(b)
+        with connection:
+            cursor = connection.cursor()
+            fields = cursor.execute(
+                "SELECT fields FROM allUsers WHERE login = ?",
+                (username,)
+            ).fetchall()[0][0]
+            fields = json.loads(fields)
+        for field_id, shots in fields.items():
+            with connection:
+                cursor = connection.cursor()
+                field_values = cursor.execute("SELECT * FROM fields WHERE id = ?", (field_id,)).fetchone()[0]
+            field = {
+                "name": field_values[3],
+                "size": field_values[1],
+                "id": field_values[0],
+                "shots": shots,
+            }
+            boards.append(b)
 
     return jsonify(boards)
 
@@ -103,14 +149,20 @@ def boards():
 def create_board():
     name = request.form["name"]
     size = int(request.form["size"])
-    assert size > 2
-    newId = len(cursor.execute(f"SELECT * FROM fields").fetchall())
+    assert size >= 2
+    with connection:
+        cursor = connection.cursor()
+        newId = len(cursor.execute("SELECT * FROM fields").fetchall())
     g = ""
     for i in range(size):
         g += "0|" * size
         g += "/"
-    newBoard = f"""INSERT INTO fields (id, Size, dataField, name)  VALUES  ({newId}, '{size}', '{g[:-2]}', '{name}')"""
-    cursor.execute(newBoard)
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            "INSERT INTO fields (id, Size, dataField, name)  VALUES  (?, ? ,? , ?)",
+        (newId, size, g[:-2], name)
+        )
     connection.commit()
     board_id = newId
     return str(board_id)
@@ -118,46 +170,58 @@ def create_board():
 
 @app.post('/api/deleteBoard')
 def delete_board():
-    id = int(request.form("id"))
-    cursor.execute("DELETE from fields where id = ?", (id,))
+    id = int(request.form["id"])
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute("DELETE from fields where id = ?", (id,))
     connection.commit()
-
+    return "", 200
 
 @app.get('/api/prizes')
 def prizes():
-    username = session["username"]
-    cursor.execute(f"SELECT admin FROM allUsers WHERE login = ?", (username,))
-    is_admin = cursor.fetchone()[0]
-    if is_admin == 'true':
-        prizes = []
-        a = cursor.execute(f"SELECT * FROM gifts").fetchall()
-        for i in a:
-            b = {
-                "name": i[1],
-                "image": i[2],
-                "description": i[3],
-                "id": i[0],
-                "isWon": i[4]
-            }
-            prizes.append(b)
-        return jsonify(prizes)
-    else:
-        return render_template("prizes.html")
-
+    prizes = []
+    with connection:
+        cursor = connection.cursor()
+        a = cursor.execute("SELECT * FROM gifts").fetchall()
+    for i in a:
+        b = {
+            "name": i[1],
+            "image": i[2],
+            "description": i[3],
+            "id": i[0],
+            "isWon": i[4]
+        }
+        prizes.append(b)
+    return jsonify(prizes)
 
 @app.post('/api/createPrize')
 def create_prize():
-    # TODO: принимать файл с иконкой
-    data = "/images/<WHATEVER>"
+    file = request.files["icon"]
+    filename = str(uuid4())
+    file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+    image_url = f"/images/{filename}"
     name = request.form["name"]
     description = request.form["description"]
-    a = cursor.execute(f"SELECT * FROM gifts").fetchall()
+    with connection:
+        cursor = connection.cursor()
+        a = cursor.execute("SELECT * FROM gifts").fetchall()
     id = len(a)
     isWon = "False"
-    newGift = f"""INSERT INTO gifts (id, name, image, description, isWon)  VALUES  ({id}, '{name}', '{data}', '{description}, '{isWon}')"""
-    cursor.execute(newGift)
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            "INSERT INTO gifts (id, name, image, description, isWon)  VALUES  (?, ?, ?, ?, ?)",
+            (id, name, image_url, description, isWon)
+        )
     connection.commit()
-    return str(id)
+    prize = {
+        "name": name,
+        "description": description,
+        "image": image_url,
+        "id": id,
+        "isWon": isWon,
+    }
+    return jsonify(prize)
 
 
 @app.post('/api/editPrize')
@@ -165,21 +229,38 @@ def edit_prize():
     idN = int(request.form["id"])
     if "name" in request.form:
         new_name = request.form["name"]
-        cursor.execute("""UPDATE allUsers SET name = ? WHERE id = ? """, (new_name, idN)).fetchall()
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute("UPDATE gifts SET name = ? WHERE id = ?", (new_name, idN)).fetchall()
         connection.commit()
     if "description" in request.form:
         new_description = request.form["description"]
-        cursor.execute("""UPDATE allUsers SET description = ? WHERE id = ? """, (new_description, idN)).fetchall()
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute("UPDATE gifts SET description = ? WHERE id = ?", (new_description, idN)).fetchall()
         connection.commit()
-    # TODO: обновление иконки
+    if request.files.get("icon"):
+        file = request.files["icon"]
+        filename = str(uuid4())
+        image_url = f"/images/{filename}"
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute("UPDATE gifts SET image = ? WHERE id = ?", (image_url, idN)).fetchall()
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+    return "", 200
 
 
 @app.post('/api/deletePrize')
 def delete_prize():
     id = int(request.form["id"])
-    cursor.execute("DELETE from gifts where id = ?", (id,))
+    with connection:
+        cursor = connection.cursor()
+        is_won = cursor.execute("SELECT isWon FROM gifts WHERE id = ?", (id,)).fetchone()[0]
+        if is_won == "True":
+            return "Приз уже был выигран, его нельзя удалить", 400
+        cursor.execute("DELETE from gifts where id = ?", (id,))
     connection.commit()
-
+    return "", 200
 
 @app.post('/api/putPrize')
 def put_prize():
@@ -201,12 +282,16 @@ def clear_prize():
 @app.get('/api/users')
 def users():
     users = []
-    a = cursor.execute(f"SELECT * FROM allUsers").fetchall()
+    with connection:
+        cursor = connection.cursor()
+        a = cursor.execute("SELECT * FROM allUsers").fetchall()
+    red(a)
     for i in a:
         if i[3] == "False":
             b = {
                 "username": i[1],
-                "id": i[0]
+                "id": i[0],
+                "fields": i[5],
             }
             users.append(b)
     return jsonify(users)
@@ -214,8 +299,8 @@ def users():
 
 @app.post('/api/addPlayer')
 def add_player():
-    board_id = int(request.form("board_id"))
-    username = str(request.form("username"))
+    board_id = int(request.form["board_id"])
+    username = str(request.form["username"])
     # TODO: Дать игроку доступ к полю в БД
 
 
@@ -251,6 +336,11 @@ def shoot():
     # Возвращает либо None, либо словарь с информацией о выигранном призе следующего
     # формата: {"name": str, "image": str, "description": str}
     return jsonify(field_info)
+
+
+@app.route('/images/<path:filename>')
+def download_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 if __name__ == '__main__':

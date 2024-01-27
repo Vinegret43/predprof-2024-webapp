@@ -1,10 +1,14 @@
 #!/usr/bin/python3
 
+
 from flask import Flask, jsonify, redirect, url_for, session, render_template, request, send_from_directory
 from sqlite3 import connect
 import json
 from uuid import uuid4
 import os
+
+if not os.path.exists("images"):
+    os.mkdir("images")
 
 def red(s):
     print(f"\033[31m{s}\033[0m")

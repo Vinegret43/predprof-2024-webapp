@@ -4,10 +4,13 @@
     background-color: #000;
     border: 1px grey solid;
     border-radius: 30px;
+    margin-top: 70px;
 }
 
 .popup_container {
     position: fixed;
+    left: 0;
+    top: 0;
     width: 100vw;
     height: 100vh;
     display: flex;

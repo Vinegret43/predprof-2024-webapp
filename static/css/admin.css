@@ -69,6 +69,53 @@
     max-height: 64px;
 }
 
+.section_header {
+    display: flex;
+    gap: 50px;
+    align-items: center;
+}
+
+.section_header label {
+    font-size: 22px;
+}
+
+.search_filter {
+    display: grid;
+    grid-template-columns: 90% 10%;
+    gap: 4px;
+}
+
+.search_bar {
+    display: flex;
+    align-items: center;
+    background: black;
+    padding: 8px;
+    border: 1px white solid;
+    border-radius: 100px;
+}
+
+.search_bar input {
+    border: none;
+}
+
+.search_bar input:focus {
+    outline: none;
+}
+
+.search_bar img, image {
+    with: 16px;
+    height: 16px;
+}
+
+.search_bar button {
+    display: block;
+    border: none;
+    height: auto;
+    padding: 8px;
+    width: 32px;
+    height: 32px;
+}
+
 button {
     display: flex;
     flex-direction: row;

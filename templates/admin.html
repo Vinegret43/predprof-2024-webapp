@@ -93,7 +93,16 @@
 
 
          <div class="main">
-             <h1>Игровые поля</h1>
+             <div class="section_header">
+                 <h1>Игровые поля</h1>
+                 <div class="search_bar" id="boards_search_bar">
+                     <input type="text" placeholder="Поиск" oninput="displayBoards(filterBoards(boards))"></input>
+                     <button onclick="this.parentElement.getElementsByTagName('input')[0].value='';
+                         displayBoards(filterBoards(boards));">
+                         <image src="/static/images/cross.png"/>
+                     </button>
+                 </div>
+             </div>
              <div class="boards_list">
                  <!-- Contents are generated in JS -->
              </div>
@@ -105,11 +114,29 @@
                  <input type="number" id="size" name="size" min="2" max="30" required></input><br/>
                  <input type="submit" value="Создать">
              </form>
-             <h1>Призы</h1>
+             <hr/>
+             <div class="section_header">
+                 <h1>Призы</h1>
+                 <div class="search_bar" id="prizes_search_bar">
+                     <input type="text" placeholder="Поиск" oninput="displayPrizes(filterPrizes(prizes))"></input>
+                     <button onclick="this.parentElement.getElementsByTagName('input')[0].value='';
+                         displayPrizes(filterPrizes(prizes));">
+                         <image src="/static/images/cross.png"/>
+                     </button>
+                 </div>
+                 <div class="search_filter">
+                     <label for="won">Только выигранные</label>
+                     <input id="won" type="radio" name="is_won" value="won" onchange="displayPrizes(filterPrizes(prizes));"/>
+                     <label for="not_won">Не выигранные</label>
+                     <input id="not_won" type="radio" name="is_won" value="not_won" onchange="displayPrizes(filterPrizes(prizes));"/>
+                     <label for="any">Любые</label>
+                     <input id="any" type="radio" name="is_won" value="any" onchange="displayPrizes(filterPrizes(prizes));" checked/>
+                 </div>
+             </div>
              <div class="prizes_list">
                  <!-- Contents are generated in JS -->
              </div>
-             <h3>Создать новый приз</h3>
+             <h3>Создать приз</h3>
              <form action="/api/createPrize" method="POST" onsubmit="return createPrize(this);" enctype="multipart/form-data">
                  <label for="name">Название приза:</label>
                  <input type="text" id="name" name="name" required></input><br/>

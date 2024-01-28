@@ -30,7 +30,8 @@ async function fetchBoards() {
 
 // Filters boards based on the search parameters supplied by the user
 function filterBoards(boards) {
-  return boards;
+  const input = document.querySelector("#boards_search_bar > input");
+  return boards.filter(board => board.name.includes(input.value));
 }
 
 function displayPrizes(prizes) {
@@ -53,7 +54,16 @@ async function fetchPrizes() {
 }
 
 function filterPrizes(prizes) {
-  return prizes;
+  const radio_value = document.querySelector('input[name="is_won"]:checked').value;
+  if (radio_value == "won") {
+    var won_values = ["True"];
+  } else if (radio_value == "not_won") {
+    var won_values = ["False"];
+  } else {
+    var won_values = ["True", "False"];
+  }
+  const input = document.querySelector("#prizes_search_bar > input");
+  return prizes.filter(prize => prize.name.includes(input.value) && won_values.includes(prize.isWon));
 }
 
 function deleteBoard(delete_button) {

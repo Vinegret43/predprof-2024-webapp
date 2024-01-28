@@ -28,6 +28,14 @@ input {
     padding: 3px;
 }
 
+input[type="button"], input[type="submit"] {
+    cursor: pointer;
+}
+
+button {
+    cursor: pointer;
+}
+
 textarea {
     background: black;
     border-color: white;
@@ -70,7 +78,7 @@ table, th, td {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: black;
+    background: #DDD;
     position: fixed;
     top: 0;
     left: 0;
@@ -81,6 +89,11 @@ table, th, td {
     margin-left: 20px;
     margin-right: 25px;
     padding: 5px;
+}
+
+.titlebar * {
+    color: black;
+    font-weight: bold;
 }
 
 .titlebar > div > * {

@@ -41,9 +41,17 @@ def prizes_view():
     with connection:
         cursor = connection.cursor()
         cursor.execute("SELECT prizes from allUsers WHERE login = ?", (username,))
-        prizes = cursor.fetchone()[0]
-    red(prizes)
-    return render_template("prizes.html")
+        prize_ids = cursor.fetchone()[0]
+        prizes = []
+        for id in prize_ids:
+            prize = cursor.execute("SELECT * FROM gifts WHERE id = ?", (id,)).fetchone()[0]
+            prizes.append({
+                "id": prize[0],
+                "name": prize[1],
+                "image": prize[2],
+                "description": prize[3],
+            })
+    return render_template("prizes.html", prizes=prizes)
 
 @app.post('/api/login')
 def login():
@@ -119,6 +127,7 @@ def boards():
         with connection:
             cursor = connection.cursor()
             a = cursor.execute("SELECT * FROM fields").fetchall()
+        # TODO: Add a "users" field containing all the users who have access to this board
         for i in a:
             b = {
                 "name": i[3],
@@ -144,7 +153,7 @@ def boards():
                 "id": field_values[0],
                 "shots": shots,
             }
-            boards.append(b)
+            boards.append(field)
 
     return jsonify(boards)
 
@@ -157,19 +166,15 @@ def create_board():
     with connection:
         cursor = connection.cursor()
         newId = len(cursor.execute("SELECT * FROM fields").fetchall())
-    g = ""
-    for i in range(size):
-        g += "0|" * size
-        g += "/"
+    contents = ["unknown"] * (size**2)
     with connection:
         cursor = connection.cursor()
         cursor.execute(
             "INSERT INTO fields (id, Size, dataField, name)  VALUES  (?, ? ,? , ?)",
-        (newId, size, g[:-2], name)
+        (newId, size, json.dumps(contents), name)
         )
     connection.commit()
-    board_id = newId
-    return str(board_id)
+    return str(newId)
 
 
 @app.post('/api/deleteBoard')
@@ -272,7 +277,10 @@ def put_prize():
     prize_id = int(request.form("prize_id"))
     x = int(request.form("x"))
     y = int(request.form("y"))
-    # TODO: Добавить приз в клетку поля
+    with connection:
+        cursor = connection.cursor()
+        board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+    # TODO: Finish this function
 
 
 @app.post('/api/clearPrize')
@@ -337,8 +345,8 @@ def shoot():
     x = int(request.form["x"])
     y = int(request.form["y"])
     field_info = None  # TODO: Запросить из БД информацию о данной клетке.
-    # Возвращает либо None, либо словарь с информацией о выигранном призе следующего
-    # формата: {"name": str, "image": str, "description": str}
+    # Возвращает либо null, либо словарь с информацией о выигранном призе следующего
+    # формата: {"name": str, "image": str, "description": str, "id": int}
     return jsonify(field_info)
 
 

@@ -52,7 +52,13 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+    padding: 16px;
     gap: 16px;
+    border: 1px grey solid;
+}
+
+.boards_list, .prizes_list {
+    margin-bottom: 20px;
 }
 
 .board_heading, .prize_heading {

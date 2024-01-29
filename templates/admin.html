@@ -23,8 +23,8 @@
          <div hidden>
              <div class="boards_list_entry">
                  <div class="board_heading">
-                     <h4 class="board_title">Board Name</h4>
-                     <h4 class="board_id">Board ID</h4>
+                     <b class="board_title">Board Name</b>
+                     <b class="board_id">Board ID</b>
                  </div>
                  <button onclick="editBoard(this);">
                      <image class="icon" src="/static/images/edit.png"/>
@@ -39,8 +39,8 @@
              <div class="prizes_list_entry">
                  <image class="prize_icon" src="" alt="Icon">
                  <div class="prize_heading">
-                     <h4 class="prize_name"></h4>
-                     <h4 class="prize_id"></h4>
+                     <b class="prize_name"></b>
+                     <b class="prize_id"></b>
                  </div>
                  <button onclick="editPrize(this);">
                      <image class="icon" src="/static/images/edit.png"/>
@@ -106,15 +106,17 @@
              <div class="boards_list">
                  <!-- Contents are generated in JS -->
              </div>
-             <h3>Создать игровое поле</h3>
-             <form action="/api/createBoard" method="POST" onsubmit="return createBoard(this);">
-                 <label for="name">Название поля:</label>
-                 <input type="text" id="name" name="name" required></input><br/>
-                 <label for="size">Размерность поля:</label>
-                 <input type="number" id="size" name="size" min="2" max="30" required></input><br/>
-                 <input type="submit" value="Создать">
-             </form>
-             <hr/>
+             <details>
+                 <summary><b>Создать игровое поле</b></summary>
+                 <form action="/api/createBoard" method="POST" onsubmit="return createBoard(this);">
+                     <label for="name">Название поля:</label>
+                     <input type="text" id="name" name="name" required></input><br/>
+                     <label for="size">Размерность поля:</label>
+                     <input type="number" id="size" name="size" min="2" max="30" required></input><br/>
+                     <input type="submit" value="Создать">
+                 </form>
+             </details>
+
              <div class="section_header">
                  <h1>Призы</h1>
                  <div class="search_bar" id="prizes_search_bar">
@@ -136,16 +138,18 @@
              <div class="prizes_list">
                  <!-- Contents are generated in JS -->
              </div>
-             <h3>Создать приз</h3>
-             <form action="/api/createPrize" method="POST" onsubmit="return createPrize(this);" enctype="multipart/form-data">
-                 <label for="name">Название приза:</label>
-                 <input type="text" id="name" name="name" required></input><br/>
-                 <label for="description">Описание приза:</label><br/>
-                 <textarea cols="40" rows="5" id="description" name="description" required></textarea><br/>
-                 <label for="icon">Иконка приза:</label>
-                 <input type="file" id="icon" name="icon" accept="image/*" required></input><br/>
-                 <input type="submit" value="Создать">
-             </form>
+             <details>
+                 <summary><b>Создать приз</b></summary>
+                 <form action="/api/createPrize" method="POST" onsubmit="return createPrize(this);" enctype="multipart/form-data">
+                     <label for="name">Название приза:</label>
+                     <input type="text" id="name" name="name" required></input><br/>
+                     <label for="description">Описание приза:</label><br/>
+                     <textarea cols="40" rows="5" id="description" name="description" required></textarea><br/>
+                     <label for="icon">Иконка приза:</label>
+                     <input type="file" id="icon" name="icon" accept="image/*" required></input><br/>
+                     <input type="submit" value="Создать">
+                 </form>
+             </details>
          </div>
          <script src="/static/js/admin.js"></script>
     </body>

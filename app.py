@@ -10,8 +10,10 @@ import os
 if not os.path.exists("images"):
     os.mkdir("images")
 
+
 def red(s):
     print(f"\033[31m{s}\033[0m")
+
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "images"
@@ -19,6 +21,23 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.secret_key = "S2;lJ^}S8F3[..xf{a}Ju%9%DpSK#iaAXRW;c(J{Neb!lTy^oZoB1tyz!.yF,HD"
 
 connection = connect('Users2.sqlite', check_same_thread=False)
+board_id = 2
+cursor = connection.cursor()
+board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+dataField = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+a = json.loads(dataField)
+print(a)
+b = []
+for i in range(0, size):
+    b1 = []
+    for j in range(0, size):
+        b1.append(a[i + j])
+    b.append(b1)
+print(b)
+
+qwe = {"name": "kirill", "size": "5", "id": "0", "shots": "19", "bambam": "bimbim"}
+cv = json.dumps(qwe)
 
 
 @app.get('/')
@@ -34,6 +53,7 @@ def main(error_message=None):
         else:
             return render_template('user.html')
     return render_template('login.html', error_message=error_message)
+
 
 @app.get("/prizes")
 def prizes_view():
@@ -52,6 +72,7 @@ def prizes_view():
                 "description": prize[3],
             })
     return render_template("prizes.html", prizes=prizes)
+
 
 @app.post('/api/login')
 def login():
@@ -128,13 +149,16 @@ def boards():
             cursor = connection.cursor()
             a = cursor.execute("SELECT * FROM fields").fetchall()
         # TODO: Add a "users" field containing all the users who have access to this board
+
         for i in a:
             b = {
                 "name": i[3],
                 "size": i[1],
-                "id": i[0]
+                "id": i[0],
+                "users": i[5]
             }
             boards.append(b)
+
     else:
         with connection:
             cursor = connection.cursor()
@@ -166,12 +190,12 @@ def create_board():
     with connection:
         cursor = connection.cursor()
         newId = len(cursor.execute("SELECT * FROM fields").fetchall())
-    contents = ["unknown"] * (size**2)
+    contents = ["NoShootNoPrize"] * (size ** 2)
     with connection:
         cursor = connection.cursor()
         cursor.execute(
             "INSERT INTO fields (id, Size, dataField, name)  VALUES  (?, ? ,? , ?)",
-        (newId, size, json.dumps(contents), name)
+            (newId, size, json.dumps(contents), name)
         )
     connection.commit()
     return str(newId)
@@ -185,6 +209,7 @@ def delete_board():
         cursor.execute("DELETE from fields where id = ?", (id,))
     connection.commit()
     return "", 200
+
 
 @app.get('/api/prizes')
 def prizes():
@@ -202,6 +227,7 @@ def prizes():
         }
         prizes.append(b)
     return jsonify(prizes)
+
 
 @app.post('/api/createPrize')
 def create_prize():
@@ -271,6 +297,7 @@ def delete_prize():
     connection.commit()
     return "", 200
 
+
 @app.post('/api/putPrize')
 def put_prize():
     board_id = int(request.form("board_id"))
@@ -280,7 +307,21 @@ def put_prize():
     with connection:
         cursor = connection.cursor()
         board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-    # TODO: Finish this function
+        size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+        dataField = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+        a = json.loads(dataField)
+        b = [a[i:i + size] for i in range(0, size ** 2, size)]
+        b[x - 1][y - 1] = "NoShootPrize|" + str(prize_id)
+        c = []
+        for i in range(0, size):
+            for j in range(0, size):
+                c.append(b[i][j])
+
+        cursor.execute(
+            "UPDATE fields SET dataField = ? WHERE id = ?",
+            (json.dumps(c), board_id)
+        )
+    connection.commit()
 
 
 @app.post('/api/clearPrize')
@@ -288,7 +329,26 @@ def clear_prize():
     board_id = int(request.form("board_id"))
     x = int(request.form("x"))
     y = int(request.form("y"))
-    # TODO: Удалить приз из клетки поля
+    with connection:
+        cursor = connection.cursor()
+        size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+        dataField = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+        a = json.loads(dataField)
+        b = [a[i:i + size] for i in range(0, size ** 2, size)]
+        if "NoShoot" in b[x - 1][y - 1]:
+            b[x - 1][y - 1] = "NoShootNoPrize"
+        else:
+            b[x - 1][y - 1] = "ShootNoPrize"
+        c = []
+        for i in range(0, size):
+            for j in range(0, size):
+                c.append(b[i][j])
+
+        cursor.execute(
+            "UPDATE fields SET dataField = ? WHERE id = ?",
+            (json.dumps(c), board_id)
+        )
+    connection.commit()
 
 
 @app.get('/api/users')
@@ -313,7 +373,13 @@ def users():
 def add_player():
     board_id = int(request.form["board_id"])
     username = str(request.form["username"])
-    # TODO: Дать игроку доступ к полю в БД
+    with connection:
+        cursor = connection.cursor()
+        s = cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchall()
+        a = json.loads(s)
+        a.append(str(board_id))
+        cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (json.dumps(a), username)).fetchall()
+    connection.commit()
 
 
 @app.post('/api/setNumberOfShots')
@@ -321,13 +387,29 @@ def set_number_of_shots():
     username = str(request.form["username"])
     board_id = int(request.form["board_id"])
     shots = int(request.form["shots"])
-    # TODO: Запись в БД в таблицу полей по (board_id) {username:shots} в user_shots_dict
+    with connection:
+        cursor = connection.cursor()
+        s = cursor.execute("SELECT bullets FROM fields WHERE id = ?", (board_id,)).fetchall()
+        a = json.loads(s)
+        a[username] = str(shots)
+        cursor.execute("UPDATE bullets SET fields = ? WHERE id = ?", (json.dumps(a), board_id)).fetchall()
+    connection.commit()
 
 
 @app.get('/api/board')
 def board():
     id = int(request.args["id"])
-    board_content = []  # TODO: Возвратить информацию о каждой клетке поля в формате списка.
+    board_content = []
+    with connection:
+        cursor = connection.cursor()
+        s = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (id,)).fetchall()
+        data = json.loads(s)
+        for i in data:
+            if "No" not in i:
+                idOfPrize = int(i.split("|")[1])
+                board_content.append(cursor.execute("SELECT image FROM gifts WHERE id = ?", (idOfPrize,)).fetchall())
+            else:
+                board_content.append(i)
     # Значения идут построчно: сначала значения первой строки слева направо, затем второй и
     # и так далее. Информация о каждой клетке закодирована в формате строки. Возможны
     # следующие значения:
@@ -344,10 +426,29 @@ def shoot():
     board_id = int(request.form["board_id"])
     x = int(request.form["x"])
     y = int(request.form["y"])
-    field_info = None  # TODO: Запросить из БД информацию о данной клетке.
+    field_info = []
+    with connection:
+        cursor = connection.cursor()
+        s = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchall()
+        data = json.loads(s)
+        size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+        b = [data[i:i + size] for i in range(0, size ** 2, size)]
+        if "NoPrize" in b[x - 1][y - 1]:
+            return None
+        else:
+            idOfPrize = int(b[x - 1][y - 1].split("|")[1])
+            f = cursor.execute("SELECT * FROM gifts WHERE id = ?", (idOfPrize,)).fetchall()
+            c = {
+                "name": f[1],
+                "image": f[2],
+                "description": f[3],
+                "isWon": f[4]
+
+            }
+
     # Возвращает либо null, либо словарь с информацией о выигранном призе следующего
     # формата: {"name": str, "image": str, "description": str, "id": int}
-    return jsonify(field_info)
+    return jsonify(c)
 
 
 @app.route('/images/<path:filename>')

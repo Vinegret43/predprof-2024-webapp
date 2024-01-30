@@ -10,10 +10,8 @@ import os
 if not os.path.exists("images"):
     os.mkdir("images")
 
-
 def red(s):
     print(f"\033[31m{s}\033[0m")
-
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "images"
@@ -21,50 +19,27 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.secret_key = "S2;lJ^}S8F3[..xf{a}Ju%9%DpSK#iaAXRW;c(J{Neb!lTy^oZoB1tyz!.yF,HD"
 
 connection = connect('Users2.sqlite', check_same_thread=False)
-board_id = 2
-cursor = connection.cursor()
-board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-dataField = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-a = json.loads(dataField)
-print(a)
-b = []
-for i in range(0, size):
-    b1 = []
-    for j in range(0, size):
-        b1.append(a[i + j])
-    b.append(b1)
-print(b)
-
-qwe = {"name": "kirill", "size": "5", "id": "0", "shots": "19", "bambam": "bimbim"}
-cv = json.dumps(qwe)
-
 
 @app.get('/')
 def main(error_message=None):
     if 'username' in session:
         username = session["username"]
-        with connection:
-            cursor = connection.cursor()
-            cursor.execute("SELECT admin FROM allUsers WHERE login = ?", (username,))
-            is_admin = cursor.fetchone()[0]
-        if is_admin == "True":
+        if user_is_admin(username):
             return render_template('admin.html')
         else:
             return render_template('user.html')
     return render_template('login.html', error_message=error_message)
-
 
 @app.get("/prizes")
 def prizes_view():
     username = session["username"]
     with connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT prizes from allUsers WHERE login = ?", (username,))
+        cursor.execute("SELECT prizes FROM allUsers WHERE login = ?", (username,))
         prize_ids = cursor.fetchone()[0]
         prizes = []
         for id in prize_ids:
-            prize = cursor.execute("SELECT * FROM gifts WHERE id = ?", (id,)).fetchone()[0]
+            prize = cursor.execute("SELECT * FROM gifts WHERE id = ?", (id,)).fetchone()
             prizes.append({
                 "id": prize[0],
                 "name": prize[1],
@@ -72,7 +47,6 @@ def prizes_view():
                 "description": prize[3],
             })
     return render_template("prizes.html", prizes=prizes)
-
 
 @app.post('/api/login')
 def login():
@@ -139,26 +113,33 @@ def logout():
 @app.get('/api/boards')
 def boards():
     username = session["username"]
-    with connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT admin FROM allUsers WHERE login = ?", (username,))
-    is_admin = cursor.fetchone()[0]
     boards = list()
-    if is_admin == 'True':
+    if user_is_admin(username):
         with connection:
             cursor = connection.cursor()
-            a = cursor.execute("SELECT * FROM fields").fetchall()
-        # TODO: Add a "users" field containing all the users who have access to this board
+            boards_query = cursor.execute("SELECT * FROM fields").fetchall()
 
-        for i in a:
-            b = {
+        with connection:
+            cursor = connection.cursor()
+            users_query = cursor.execute("SELECT login, fields FROM allUsers WHERE admin != 'True'").fetchall()
+        users = map(lambda entry: (entry[0], json.loads(entry[1])), users_query)
+
+        boards = {}
+        for i in boards_query:
+            board = {
                 "name": i[3],
                 "size": i[1],
                 "id": i[0],
-                "users": i[5]
+                "shotsFiredBy": json.loads(i[4]),
+                "users": {},
             }
-            boards.append(b)
+            boards[i[0]] = board
 
+        for username, user_boards in users:
+            for board, shots in user_boards.items():
+                boards[board]["users"][username] = shots
+
+        boards = list(boards.values())
     else:
         with connection:
             cursor = connection.cursor()
@@ -170,7 +151,7 @@ def boards():
         for field_id, shots in fields.items():
             with connection:
                 cursor = connection.cursor()
-                field_values = cursor.execute("SELECT * FROM fields WHERE id = ?", (field_id,)).fetchone()[0]
+                field_values = cursor.execute("SELECT * FROM fields WHERE id = ?", (field_id,)).fetchone()
             field = {
                 "name": field_values[3],
                 "size": field_values[1],
@@ -186,16 +167,16 @@ def boards():
 def create_board():
     name = request.form["name"]
     size = int(request.form["size"])
-    assert size >= 2
+    assert 2 <= size <= 30
     with connection:
         cursor = connection.cursor()
         newId = len(cursor.execute("SELECT * FROM fields").fetchall())
-    contents = ["NoShootNoPrize"] * (size ** 2)
+    contents = [{"shot": False, "prize": None}] * (size**2)
     with connection:
         cursor = connection.cursor()
         cursor.execute(
             "INSERT INTO fields (id, Size, dataField, name)  VALUES  (?, ? ,? , ?)",
-            (newId, size, json.dumps(contents), name)
+        (newId, size, json.dumps(contents), name)
         )
     connection.commit()
     return str(newId)
@@ -206,10 +187,20 @@ def delete_board():
     id = int(request.form["id"])
     with connection:
         cursor = connection.cursor()
+        shots_fired_by = json.loads(cursor.execute("SELECT shotsFiredBy FROM fields WHERE id = ?", (id,)).fetchone()[0])
+        if shots_fired_by:
+            return "Нельзя удалить поле", 400
         cursor.execute("DELETE from fields where id = ?", (id,))
+        users = cursor.execute("SELECT login, fields FROM allUsers WHERE admin != 'True'").fetchall()
+        for username, boards in users:
+            boards = json.loads(boards)
+            if id in boards:
+                del boards[id]
+                boards = json.dumps(boards)
+                cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (boards, username)).fetchall()
+
     connection.commit()
     return "", 200
-
 
 @app.get('/api/prizes')
 def prizes():
@@ -227,7 +218,6 @@ def prizes():
         }
         prizes.append(b)
     return jsonify(prizes)
-
 
 @app.post('/api/createPrize')
 def create_prize():
@@ -292,37 +282,30 @@ def delete_prize():
         cursor = connection.cursor()
         is_won = cursor.execute("SELECT isWon FROM gifts WHERE id = ?", (id,)).fetchone()[0]
         if is_won == "True":
-            return "Приз уже был выигран, его нельзя удалить", 400
+            return "Приз нельзя удалить", 400
         cursor.execute("DELETE from gifts where id = ?", (id,))
     connection.commit()
     return "", 200
 
-
 @app.post('/api/putPrize')
 def put_prize():
-    board_id = int(request.form("board_id"))
-    prize_id = int(request.form("prize_id"))
-    x = int(request.form("x"))
-    y = int(request.form("y"))
+    board_id = int(request.form["board_id"])
+    prize_id = int(request.form["prize_id"])
+    x = int(request.form["x"])
+    y = int(request.form["y"])
     with connection:
         cursor = connection.cursor()
-        board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-        size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-        dataField = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-        a = json.loads(dataField)
-        b = [a[i:i + size] for i in range(0, size ** 2, size)]
-        b[x - 1][y - 1] = "NoShootPrize|" + str(prize_id)
-        c = []
-        for i in range(0, size):
-            for j in range(0, size):
-                c.append(b[i][j])
-
-        cursor.execute(
-            "UPDATE fields SET dataField = ? WHERE id = ?",
-            (json.dumps(c), board_id)
-        )
-    connection.commit()
-
+        assert cursor.execute("SELECT * FROM gifts WHERE id = ?", (prize_id)).fetchone()
+        cursor.execute("UPDATE gifts SET isWon = 'True' WHERE id = ?", (prize_id)).fetchall()
+        board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()
+        if json.loads(board[4]):
+            return "Нельзя редактировать это поле", 400
+        content = json.loads(board[2])
+        size = board[1]
+        content[y*size + x]["prize"] = prize_id
+        content = json.dumps(content)
+        cursor.execute("UPDATE fields SET dataField = ? WHERE id = ?", (content, board_id)).fetchall()
+    return "", 200
 
 @app.post('/api/clearPrize')
 def clear_prize():
@@ -331,24 +314,15 @@ def clear_prize():
     y = int(request.form("y"))
     with connection:
         cursor = connection.cursor()
-        size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-        dataField = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-        a = json.loads(dataField)
-        b = [a[i:i + size] for i in range(0, size ** 2, size)]
-        if "NoShoot" in b[x - 1][y - 1]:
-            b[x - 1][y - 1] = "NoShootNoPrize"
-        else:
-            b[x - 1][y - 1] = "ShootNoPrize"
-        c = []
-        for i in range(0, size):
-            for j in range(0, size):
-                c.append(b[i][j])
-
-        cursor.execute(
-            "UPDATE fields SET dataField = ? WHERE id = ?",
-            (json.dumps(c), board_id)
-        )
-    connection.commit()
+        board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()
+        if json.loads(board[4]):
+            return "Нельзя редактировать это поле", 400
+        content = json.loads(board[2])
+        size = board[1]
+        content[y*size + x]["prize"] = None
+        content = json.dumps(content)
+        cursor.execute("UPDATE fields SET dataField = ? WHERE id = ?", (content, board_id)).fetchall()
+    return "", 200
 
 
 @app.get('/api/users')
@@ -375,11 +349,30 @@ def add_player():
     username = str(request.form["username"])
     with connection:
         cursor = connection.cursor()
-        s = cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchall()
-        a = json.loads(s)
-        a.append(str(board_id))
-        cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (json.dumps(a), username)).fetchall()
-    connection.commit()
+        assert cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()
+        fields = cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchone()[0]
+        fields = json.loads(fields)
+        fields[board_id] = 0
+        fields = json.dumps(fields)
+        cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (fields, username))
+    return "", 200
+
+
+@app.post('/api/removePlayer')
+def remove_player():
+    board_id = int(request.form["board_id"])
+    username = str(request.form["username"])
+    with connection:
+        cursor = connection.cursor()
+        shots_fired_by = cursor.execute("SELECT shotsFiredBy FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
+        if username in json.loads(shots_fired_by):
+            return "Нельзя удалить игрока", 400
+        fields = cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchone()[0]
+        fields = json.loads(fields)
+        del fields[board_id]
+        fields = json.dumps(fields)
+        cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (fields, username))
+    return "", 200
 
 
 @app.post('/api/setNumberOfShots')
@@ -389,36 +382,33 @@ def set_number_of_shots():
     shots = int(request.form["shots"])
     with connection:
         cursor = connection.cursor()
-        s = cursor.execute("SELECT bullets FROM fields WHERE id = ?", (board_id,)).fetchall()
-        a = json.loads(s)
-        a[username] = str(shots)
-        cursor.execute("UPDATE bullets SET fields = ? WHERE id = ?", (json.dumps(a), board_id)).fetchall()
-    connection.commit()
+        assert cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()
+        fields = cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchone()[0]
+        fields = json.loads(fields)
+        fields[board_id] = 0
+        fields = json.dumps(fields)
+        cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (fields, username))
 
 
 @app.get('/api/board')
 def board():
     id = int(request.args["id"])
-    board_content = []
-    with connection:
-        cursor = connection.cursor()
-        s = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (id,)).fetchall()
-        data = json.loads(s)
-        for i in data:
-            if "No" not in i:
-                idOfPrize = int(i.split("|")[1])
-                board_content.append(cursor.execute("SELECT image FROM gifts WHERE id = ?", (idOfPrize,)).fetchall())
-            else:
-                board_content.append(i)
-    # Значения идут построчно: сначала значения первой строки слева направо, затем второй и
-    # и так далее. Информация о каждой клетке закодирована в формате строки. Возможны
-    # следующие значения:
-    # - "unknown" - Никто ещё не стрелял в эту клетку. Неизвестно, что там
-    # - "empty" - В клетку уже стреляли и она оказалась пустой
-    # - "/path/to/icon.png" - Здесь есть приз, его уже выиграли. Строка содержит путь
-    #  до иконки приза
+    username = session["username"]
 
-    return jsonify(board_content)
+    if user_is_admin(username):
+        with connection:
+            cursor = connection.cursor()
+            board_content = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (id,)).fetchone()[0]
+    else:
+        with connection:
+            cursor = connection.cursor()
+            board_content = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (id,)).fetchone()[0]
+        board_content = list(map(
+            lambda entry: {"shot": False, "prize": None} if not entry["shot"] else entry,
+            json.loads(board_content),
+        ))
+
+    return board_content
 
 
 @app.post('/api/shoot')
@@ -426,35 +416,47 @@ def shoot():
     board_id = int(request.form["board_id"])
     x = int(request.form["x"])
     y = int(request.form["y"])
-    field_info = []
-    with connection:
+    username = session["username"]
+
+    with connectin:
         cursor = connection.cursor()
-        s = cursor.execute("SELECT dataField FROM fields WHERE id = ?", (board_id,)).fetchall()
-        data = json.loads(s)
-        size = cursor.execute("SELECT size FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
-        b = [data[i:i + size] for i in range(0, size ** 2, size)]
-        if "NoPrize" in b[x - 1][y - 1]:
-            return None
-        else:
-            idOfPrize = int(b[x - 1][y - 1].split("|")[1])
-            f = cursor.execute("SELECT * FROM gifts WHERE id = ?", (idOfPrize,)).fetchall()
-            c = {
-                "name": f[1],
-                "image": f[2],
-                "description": f[3],
-                "isWon": f[4]
+        # Verifying and decrimenting number of shots
+        shots = json.loads(cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchone()[0])
+        assert shots[board_id] > 0
+        shots[board_id] -= 1
+        cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (json.dumps(shots), username)).fetchall()
 
-            }
+        # Updating contents, setting "shot" property to true
+        content, size = cursor.execute("SELECT dataField, size FROM fields WHERE id = ?", (board_id)).fetchone()
+        content = json.loads(content)
+        prize = content[y*size + x]["prize"]
+        content[y*size + x]["shot"] = True
+        content = json.dumps(content)
+        cursor.execute("UPDATE fields SET dataField = ? WHERE id = ?", (content, board_id)).fetchall()
 
-    # Возвращает либо null, либо словарь с информацией о выигранном призе следующего
-    # формата: {"name": str, "image": str, "description": str, "id": int}
-    return jsonify(c)
+        # Updating shotsFiredBy
+        shots_fired_by = cursor.execute("SELECT shotsFiredBy FROM fields WHERE id = ?", (board_id)).fetchone()[0]
+        shots_fired_by = json.loads(shots_fired_by)
+        if username not in shots_fired_by:
+            shots_fired_by.append(username)
+        shots_fired_by = json.dumps(shots_fired_by)
+        cursor.execute("UPDATE fields SET shotsFiredBy = ? WHERE id = ?", (shots_fired_by, board_id,)).fetchall()
+
+    return jsonify(prize)
 
 
 @app.route('/images/<path:filename>')
 def download_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+
+def user_is_admin(username):
+    with connection:
+        cursor = connection.cursor()
+        is_admin = cursor.execute("SELECT admin FROM allUsers where login = ?", (username,)).fetchone()[0]
+        if is_admin == "True":
+            return True
+    return False
 
 if __name__ == '__main__':
     app.run()

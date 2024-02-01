@@ -137,7 +137,7 @@ def boards():
 
         for username, user_boards in users:
             for board, shots in user_boards.items():
-                boards[board]["users"][username] = shots
+                boards[int(board)]["users"][username] = shots
 
         boards = list(boards.values())
     else:
@@ -295,8 +295,8 @@ def put_prize():
     y = int(request.form["y"])
     with connection:
         cursor = connection.cursor()
-        assert cursor.execute("SELECT * FROM gifts WHERE id = ?", (prize_id)).fetchone()
-        cursor.execute("UPDATE gifts SET isWon = 'True' WHERE id = ?", (prize_id)).fetchall()
+        assert cursor.execute("SELECT * FROM gifts WHERE id = ?", (prize_id,)).fetchone()
+        cursor.execute("UPDATE gifts SET isWon = 'True' WHERE id = ?", (prize_id,)).fetchall()
         board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()
         if json.loads(board[4]):
             return "Нельзя редактировать это поле", 400
@@ -309,9 +309,10 @@ def put_prize():
 
 @app.post('/api/clearPrize')
 def clear_prize():
-    board_id = int(request.form("board_id"))
-    x = int(request.form("x"))
-    y = int(request.form("y"))
+    board_id = int(request.form["board_id"])
+    x = int(request.form["x"])
+    y = int(request.form["y"])
+    red((board_id, x, y))
     with connection:
         cursor = connection.cursor()
         board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()
@@ -331,13 +332,11 @@ def users():
     with connection:
         cursor = connection.cursor()
         a = cursor.execute("SELECT * FROM allUsers").fetchall()
-    red(a)
     for i in a:
         if i[3] == "False":
             b = {
                 "username": i[1],
                 "id": i[0],
-                "fields": i[5],
             }
             users.append(b)
     return jsonify(users)
@@ -360,7 +359,7 @@ def add_player():
 
 @app.post('/api/removePlayer')
 def remove_player():
-    board_id = int(request.form["board_id"])
+    board_id = request.form["board_id"]
     username = str(request.form["username"])
     with connection:
         cursor = connection.cursor()
@@ -377,17 +376,18 @@ def remove_player():
 
 @app.post('/api/setNumberOfShots')
 def set_number_of_shots():
-    username = str(request.form["username"])
-    board_id = int(request.form["board_id"])
+    username = request.form["username"]
+    board_id = request.form["board_id"]
     shots = int(request.form["shots"])
     with connection:
         cursor = connection.cursor()
         assert cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()
         fields = cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchone()[0]
         fields = json.loads(fields)
-        fields[board_id] = 0
+        fields[board_id] = shots
         fields = json.dumps(fields)
         cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (fields, username))
+    return "", 200
 
 
 @app.get('/api/board')

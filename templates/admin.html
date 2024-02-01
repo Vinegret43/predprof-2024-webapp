@@ -13,12 +13,12 @@
          Надо будет сделать:
          1. [X] Тайтлбар с логотипом и кнопкой выхода
          2. [X] Список полей игровых, чтобы можно было добавлять новые и удалять
-         3. [ ] Фильтрация полей по названию
-         4. [ ] Редактор полей игровых. Каждое поле можно открыть и там призы
-         добавлять или игроков на поле, а ещё давать игрокам выстрелы
+         3. [X] Фильтрация полей по названию
+         4. [ ] Редактор полей игровых. Каждое поле можно открыть и призы
+         добавлять на поле или игроков, а ещё давать игрокам выстрелы
          5. [X] Список призов и форма для добавления новых
-         6. [ ] Фильтрация призов по имени и тому, был ли он выигран или нет
-         7. [ ] Редактор призов
+         6. [X] Фильтрация призов по имени и тому, был ли он выигран или нет
+         7. [X] Редактор призов
          -->
          <div hidden>
              <div class="boards_list_entry">
@@ -52,8 +52,53 @@
                  </button>
              </div>
 
-             <div class="board_editor">
+             <div class="board_editor_prizes_list_entry prizes_list_entry">
+                 <image class="prize_icon" src="" alt="Icon">
+                 <div class="prize_heading">
+                     <b class="prize_name"></b>
+                     <b class="prize_id"></b>
+                 </div>
+                 <button onclick="putPrizeTool(this);" title="">
+                     <image class="icon" src="/static/images/plus.png"/>
+                     Добавить
+                 </button>
+             </div>
 
+             <div class="board_editor_users_list_entry prizes_list_entry">
+                 <b class="username"></b>
+                 <button onclick="addUser(this);" title="Добавить игрока на поле">
+                     <image class="icon" src="/static/images/plus.png"/>
+                     Добавить
+                 </button>
+                 <div class="active_user">
+                     <input type="number" min="0" title="Количество выстрелов" onchange="setShots(this);"></input>
+                     <button onclick="removeUser(this);" title="Убрать игрока с поля">
+                         <image class="icon" src="/static/images/trash.png"/>
+                         Убрать
+                     </button>
+                 </div>
+             </div>
+
+             <div class="board_editor">
+                 <div class="vertical_split">
+                     <div class="horizontal_split">
+                         <div class="board_editor_prizes_list">
+                             <!-- Filled with JS -->
+                         </div>
+                         <div class="board_editor_users_list">
+                             <!-- Filled with JS -->
+                         </div>
+                     </div>
+                     <div class="grid">
+
+                     </div>
+                 </div>
+                 <div class="board_editor_bottom_panel">
+                     <button onclick="removePrizeTool();" class="delete_prizes_tool_button">
+                         <image class="icon" src="/static/images/trash.png"/>
+                         Удалить приз
+                     </button>
+                 </div>
              </div>
 
              <div class="prize_editor">

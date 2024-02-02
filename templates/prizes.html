@@ -1,18 +1,42 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
+<html>
     <head>
         <meta charset="UTF-8">
         <title>SeaBattle</title>
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <link rel="stylesheet" href="/static/css/general.css">
+         <style>
+            .prize-container {
+                width: 150px;
+                height: 200px;
+                background-color: #f2f2f2;
+                margin: 10px;
+                display: inline-block;
+                text-align: center;
+                vertical-align: top;
+                border: 2px solid #ffffff;
+                padding: 10px;
+                box-sizing: border-box;
+            }
+            div {
+                text-align: center;
+            }
+        
+        </style>
+    
     </head>
     <body>
-         <div class="titlebar">
+    {% for prize in prizes %}
+        <div class="prize-container">
+            <h2>{{ prize.name }}</h2>
+            <p>{{ prize.description }}</p>
+            <img src="{{ prize.image }}" alt="{{ prize.name }}">
+        </div>
+    {% endfor %}
+        <div class="titlebar">
              <a href="/"><image src="/static/images/logo_bright.png"/></a>
              <a href="/api/logout" class="lougout_link">Выход</a>
-         </div>
-
-        <div class="main">
-         </div>
+        </div>
     </body>
-</html> 
+</html>

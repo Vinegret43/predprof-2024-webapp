@@ -157,6 +157,7 @@ def boards():
                 "size": field_values[1],
                 "id": field_values[0],
                 "shots": shots,
+                "content": json.loads(i[2]),
             }
             boards.append(field)
 
@@ -312,7 +313,6 @@ def clear_prize():
     board_id = int(request.form["board_id"])
     x = int(request.form["x"])
     y = int(request.form["y"])
-    red((board_id, x, y))
     with connection:
         cursor = connection.cursor()
         board = cursor.execute("SELECT * FROM fields WHERE id = ?", (board_id,)).fetchone()

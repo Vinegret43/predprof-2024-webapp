@@ -37,16 +37,19 @@ def prizes_view():
         cursor = connection.cursor()
         cursor.execute("SELECT prizes FROM allUsers WHERE login = ?", (username,))
         prize_ids = json.loads(cursor.fetchone()[0])
-        prizes = []
+        prizes = {}
         for id in prize_ids:
             prize = cursor.execute("SELECT * FROM gifts WHERE id = ?", (id,)).fetchone()
-            red((prize, id))
-            prizes.append({
-                "id": prize[0],
-                "name": prize[1],
-                "image": prize[2],
-                "description": prize[3],
-            })
+            id, name, image, description, _ = prize
+            if id in prizes:
+                prizes[id]["amount"] += 1
+            else:
+                prizes[id] = {
+                    "name": name,
+                    "image": image,
+                    "description": description,
+                    "amount": 1,
+                }
     return render_template("prizes.html", prizes=prizes)
 
 @app.post('/api/login')

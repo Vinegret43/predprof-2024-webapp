@@ -1,0 +1,45 @@
+.prizes-grid {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 50px;
+    flex-wrap: wrap;
+}
+
+.prize-container {
+    width: 450px;
+    height: 600px;
+    margin: 10px;
+    text-align: center;
+    border: 2px solid #ffffff;
+    padding: 10px;
+    box-sizing: border-box;
+    position: relative;
+    background: #000A;
+    border-radius: 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+    align-items: center;
+}
+
+.prize-container img {
+    max-width: 50%;
+    max-height: 30%;
+    margin-top: 50%;
+}
+
+p {
+    font-size: 24px;
+}
+
+.amount {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: lightblue;
+    font-weight: bold;
+    padding: 8px;
+    border-radius: 8px;
+    color: black;
+}

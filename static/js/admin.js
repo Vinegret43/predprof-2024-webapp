@@ -127,8 +127,6 @@ function setupBoardEditor(editor, board_id) {
     }
     element.addEventListener("click", event => {
       const target = event.target;
-      console.log(Array.from(target.parentElement.children));
-      console.log(Array.from(target.parentElement.children).indexOf(target));
       const index = Array.from(target.parentElement.children).indexOf(target);
       if (board_editor_tool.mode == "insert") {
         putPrize(index);
@@ -178,7 +176,7 @@ function putPrizeTool(button) {
   const board_id = last_board_edited;
   const board = getById(boards, board_id);
   if (board.shotsFiredBy.length > 0) {
-    window.alrert("Нельзя редактировать поле");
+    window.alert("Нельзя редактировать поле");
     return;
   }
   board_editor_tool = {
@@ -217,7 +215,7 @@ function removePrizeTool() {
   const board_id = last_board_edited;
   const board = getById(boards, board_id);
   if (board.shotsFiredBy.length > 0) {
-    window.alrert("Нельзя редактировать поле");
+    window.alert("Нельзя редактировать поле");
     return;
   }
   board_editor_tool = {

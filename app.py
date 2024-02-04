@@ -36,10 +36,11 @@ def prizes_view():
     with connection:
         cursor = connection.cursor()
         cursor.execute("SELECT prizes FROM allUsers WHERE login = ?", (username,))
-        prize_ids = cursor.fetchone()[0]
+        prize_ids = json.loads(cursor.fetchone()[0])
         prizes = []
         for id in prize_ids:
             prize = cursor.execute("SELECT * FROM gifts WHERE id = ?", (id,)).fetchone()
+            red((prize, id))
             prizes.append({
                 "id": prize[0],
                 "name": prize[1],
@@ -152,12 +153,16 @@ def boards():
             with connection:
                 cursor = connection.cursor()
                 field_values = cursor.execute("SELECT * FROM fields WHERE id = ?", (field_id,)).fetchone()
+            content = json.loads(field_values[2])
+            for entry in content:
+                if not entry["shot"]:
+                    entry["prize"] = None
             field = {
                 "name": field_values[3],
                 "size": field_values[1],
                 "id": field_values[0],
                 "shots": shots,
-                "content": json.loads(i[2]),
+                "content": content,
             }
             boards.append(field)
 
@@ -418,31 +423,37 @@ def shoot():
     y = int(request.form["y"])
     username = session["username"]
 
-    with connectin:
+    with connection:
         cursor = connection.cursor()
         # Verifying and decrimenting number of shots
         shots = json.loads(cursor.execute("SELECT fields FROM allUsers WHERE login = ?", (username,)).fetchone()[0])
-        assert shots[board_id] > 0
-        shots[board_id] -= 1
+        assert shots[str(board_id)] > 0
+        shots[str(board_id)] -= 1
         cursor.execute("UPDATE allUsers SET fields = ? WHERE login = ?", (json.dumps(shots), username)).fetchall()
 
         # Updating contents, setting "shot" property to true
-        content, size = cursor.execute("SELECT dataField, size FROM fields WHERE id = ?", (board_id)).fetchone()
+        content, size = cursor.execute("SELECT dataField, size FROM fields WHERE id = ?", (board_id,)).fetchone()
         content = json.loads(content)
-        prize = content[y*size + x]["prize"]
+        prize_id = content[y*size + x]["prize"]
         content[y*size + x]["shot"] = True
         content = json.dumps(content)
         cursor.execute("UPDATE fields SET dataField = ? WHERE id = ?", (content, board_id)).fetchall()
 
         # Updating shotsFiredBy
-        shots_fired_by = cursor.execute("SELECT shotsFiredBy FROM fields WHERE id = ?", (board_id)).fetchone()[0]
+        shots_fired_by = cursor.execute("SELECT shotsFiredBy FROM fields WHERE id = ?", (board_id,)).fetchone()[0]
         shots_fired_by = json.loads(shots_fired_by)
         if username not in shots_fired_by:
             shots_fired_by.append(username)
         shots_fired_by = json.dumps(shots_fired_by)
         cursor.execute("UPDATE fields SET shotsFiredBy = ? WHERE id = ?", (shots_fired_by, board_id,)).fetchall()
 
-    return jsonify(prize)
+        if prize_id != None:
+            prizes = json.loads(cursor.execute("SELECT prizes FROM allUsers WHERE login = ?", (username,)).fetchone()[0])
+            prizes.append(prize_id)
+            prizes = json.dumps(prizes)
+            cursor.execute("UPDATE allUsers SET prizes = ? WHERE login = ?", (prizes, username)).fetchone()
+
+    return jsonify(prize_id)
 
 
 @app.route('/images/<path:filename>')

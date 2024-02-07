@@ -341,7 +341,7 @@ def users():
         cursor = connection.cursor()
         a = cursor.execute("SELECT * FROM allUsers").fetchall()
     for i in a:
-        if i[3] == "False":
+        if i[3] != "True":
             b = {
                 "username": i[1],
                 "id": i[0],
